@@ -19,7 +19,8 @@ data class PlanSettings(
 data class Trip(
     val id: Long = 0L, val from: String, val to: String,
     val places: List<Place>, val createdAt: Long = System.currentTimeMillis(),
-    val route: Route? = null, val settings: PlanSettings = PlanSettings()
+    val route: Route? = null, val settings: PlanSettings = PlanSettings(),
+    val visitedIds: Set<String> = emptySet()
 )
 interface TravelRepository {
     suspend fun geocode(address: String): Point

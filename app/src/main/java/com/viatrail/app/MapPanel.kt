@@ -31,7 +31,7 @@ import org.maplibre.geojson.Point as GeoJsonPoint
 
 @Composable
 fun MapPanel(route:Route?,stops:List<Place>,modifier:Modifier=Modifier,current:Point?=null) {
-    val key= BuildConfig.GEOAPIFY_KEY
+    val key=BuildConfig.GEOAPIFY_KEY
     if(key.isBlank()) { Surface(modifier) { Text("Добавь GEOAPIFY_KEY в ~/.gradle/gradle.properties",Modifier.padding(20.dp)) };return }
     val latestRoute by rememberUpdatedState(route)
     val latestStops by rememberUpdatedState(stops)

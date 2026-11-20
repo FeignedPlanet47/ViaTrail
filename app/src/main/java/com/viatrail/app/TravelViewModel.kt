@@ -17,7 +17,7 @@ data class TravelUiState(
     val category: String = "Интересные места", val settings: PlanSettings = PlanSettings(),
     val startPoint: Point? = null, val endPoint: Point? = null,
     val activeTripId: Long = 0, val createdAt: Long = System.currentTimeMillis(),
-    val offlineCopy: Boolean = false
+    val offlineCopy: Boolean = false, val visitedIds: Set<String> = emptySet()
 ) {
     val visitMinutes get()= selected.sumOf { it.visitMinutes }
     val totalMinutes get()=(route?.durationSeconds ?: 0.0)/60.0 + visitMinutes
@@ -45,7 +45,7 @@ class TravelViewModel @Inject constructor(private val repository: TravelReposito
         val s=repository.geocode(from);val e=repository.geocode(to)
         val direct=repository.route(listOf(s,e))
         _state.update { it.copy(from=from,to=to,category=category,route=direct,directRoute=direct,
-            startPoint=s,endPoint=e,selected=emptyList(),candidates=emptyList(),skippedIds=emptySet(),activeTripId=0,offlineCopy=false,createdAt=System.currentTimeMillis()) }
+            startPoint=s,endPoint=e,selected=emptyList(),candidates=emptyList(),skippedIds=emptySet(),activeTripId=0,offlineCopy=false,createdAt=System.currentTimeMillis(),visitedIds=emptySet()) }
         val places=repository.discover(direct,category)
         val limit=_state.value.settings.maxDetourKm
         _state.update { it.copy(candidates=places.filter { p -> p.distanceFromRouteKm <= limit },
@@ -81,6 +81,31 @@ class TravelViewModel @Inject constructor(private val repository: TravelReposito
         require(revised.durationSeconds/60+reordered.sumOf { it.visitMinutes }<=old.settings.maxTotalMinutes) { "Новый порядок превышает лимит времени" }
         _state.update { it.copy(selected=reordered,route=revised) }
     }
+    fun autoPlan()=execute {
+        val old = _state.value
+        check(!old.offlineCopy) { "Открой онлайн-маршрут для подбора" }
+        val start = old.startPoint ?: error("Сначала построй маршрут")
+        val end = old.endPoint ?: error("Сначала построй маршрут")
+        val base = old.directRoute ?: error("Нужен исходный маршрут")
+        check(base.durationSeconds / 60.0 < old.settings.maxTotalMinutes) {
+            "Маршрут уже превышает указанный лимит времени"
+        }
+        val result = AutoPlanner(repository).optimize(start, end, base,
+            old.candidates.filterNot { it.id in old.skippedIds }, old.settings)
+        _state.update { it.copy(selected=result.places,route=result.route,
+            info=if(result.places.isEmpty()) "Нет точек, которые помещаются в ограничения" else
+                "Подобрано остановок: ${result.places.size}") }
+    }
+    fun markVisited(place: Place) = viewModelScope.launch {
+        val old = _state.value
+        val marked = old.visitedIds + place.id
+        _state.update { it.copy(visitedIds=marked) }
+        if (old.activeTripId != 0L && old.route != null) {
+            runCatching { repository.save(Trip(old.activeTripId, old.from, old.to,
+                old.selected, old.createdAt, old.route, old.settings, marked)) }
+                .onFailure { e -> _state.update { it.copy(error=e.message ?: "Ошибка сохранения прогресса") } }
+        }
+    }
     fun skip(place:Place) { _state.update { it.copy(skippedIds=it.skippedIds+place.id) } }
     fun updatePlaceDuration(place:Place,minutes:Int)=execute {
         val old=_state.value
@@ -94,14 +119,14 @@ class TravelViewModel @Inject constructor(private val repository: TravelReposito
     }
     fun save()=execute {
         val old=_state.value;check(old.route!=null) { "Сначала построй маршрут" }
-        val id=repository.save(Trip(old.activeTripId,old.from,old.to,old.selected,old.createdAt,old.route,old.settings))
+        val id=repository.save(Trip(old.activeTripId,old.from,old.to,old.selected,old.createdAt,old.route,old.settings,old.visitedIds))
         _state.update { it.copy(activeTripId=id,info="Поездка сохранена на устройстве") }
     }
     fun open(trip:Trip) {
         _state.update { it.copy(from=trip.from,to=trip.to,selected=trip.places,route=trip.route,
             directRoute=null,candidates=emptyList(),skippedIds=emptySet(),settings=trip.settings,
             activeTripId=trip.id,createdAt=trip.createdAt,startPoint=trip.route?.points?.firstOrNull(),endPoint=trip.route?.points?.lastOrNull(),
-            offlineCopy=true,info="Открыта сохраненная копия. Карта может потребовать интернет") }
+            offlineCopy=true,visitedIds=trip.visitedIds,info="Открыта сохраненная копия. Карта может потребовать интернет") }
     }
     fun refreshSaved()=execute {
         val old=_state.value

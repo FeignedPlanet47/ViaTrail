@@ -104,7 +104,7 @@ class GeoapifyRepository(private val dao: TripsDao, private val client: OkHttpCl
             .put("points",JSONArray().apply { r.points.forEach { put(JSONArray().put(it.lat).put(it.lon)) } }) }?.toString() ?: ""
         val settings=JSONObject().put("maxDetourKm",trip.settings.maxDetourKm)
             .put("visitMinutes",trip.settings.visitMinutes).put("maxTotalMinutes",trip.settings.maxTotalMinutes)
-        return dao.insert(TripEntity(trip.id,trip.from,trip.to,stops.toString(),trip.createdAt,route,settings.toString()))
+        return dao.insert(TripEntity(trip.id,trip.from,trip.to,stops.toString(),trip.createdAt,route,settings.toString(),JSONArray(trip.visitedIds.toList()).toString()))
     }
     override fun observeTrips(): Flow<List<Trip>> = dao.all().map { rows -> rows.map { e ->
         val arr=JSONArray(e.stopsJson)
@@ -116,7 +116,8 @@ class GeoapifyRepository(private val dao: TripsDao, private val client: OkHttpCl
         val s=runCatching { JSONObject(e.settingsJson) }.getOrNull()
         Trip(e.id,e.start,e.destination,places,e.createdAt,r,
             PlanSettings(s?.optDouble("maxDetourKm",20.0) ?: 20.0,
-                s?.optInt("visitMinutes",30) ?: 30,s?.optInt("maxTotalMinutes",480) ?: 480))
+                s?.optInt("visitMinutes",30) ?: 30,s?.optInt("maxTotalMinutes",480) ?: 480),
+            runCatching { JSONArray(e.visitedJson).let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } }.getOrDefault(emptySet()))
     } }
     override suspend fun delete(id: Long) = dao.delete(id)
 }

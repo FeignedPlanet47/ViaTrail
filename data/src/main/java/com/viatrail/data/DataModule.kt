@@ -22,9 +22,14 @@ object DataModule {
             db.execSQL("ALTER TABLE trips ADD COLUMN settingsJson TEXT NOT NULL DEFAULT ''")
         }
     }
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE trips ADD COLUMN visitedJson TEXT NOT NULL DEFAULT '[]'")
+        }
+    }
     @Provides @Singleton fun database(@ApplicationContext context: Context): TravelDatabase =
         Room.databaseBuilder(context, TravelDatabase::class.java, "viatrail.db")
-            .addMigrations(MIGRATION_1_2).build()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     @Provides fun dao(db: TravelDatabase): TripsDao = db.tripsDao()
     @Provides @Singleton fun client(): OkHttpClient = OkHttpClient.Builder()
         .callTimeout(25, TimeUnit.SECONDS).build()

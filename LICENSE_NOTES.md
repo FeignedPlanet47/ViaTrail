@@ -1,9 +1,7 @@
-# Источники и лицензии
+# Лицензии и атрибуции
 
-- MapLibre Native SDK: https://maplibre.org/ ; проверить NOTICE/лицензии конкретной версии зависимости.
-- Geoapify: https://www.geoapify.com/terms-of-use/ ; https://www.geoapify.com/pricing/ . При публикации проверить действующие условия тарифов и атрибуции.
-- OpenStreetMap: https://www.openstreetmap.org/copyright (ODbL, © OpenStreetMap contributors).
-- AndroidX / Compose / Room: применимые лицензии Apache 2.0 и NOTICE конкретных артефактов.
-- Фотографии объектов: не предоставляются в MVP, поскольку API-описание места не гарантирует прав на показ/распространение фото.
-
-Не убирайте атрибуцию со страницы карты; не используйте публичные серверы OpenStreetMap для массовой загрузки плиток и не включайте ключ Geoapify в открытый репозиторий.
+- Карты и поиск: Geoapify — https://www.geoapify.com/terms-and-conditions/ ; требуется активный API-ключ и соблюдение квот, актуальной политики, атрибуция Geoapify.
+- OpenStreetMap: © OpenStreetMap contributors, ODbL — https://www.openstreetmap.org/copyright
+- MapLibre: лицензионные файлы дистрибутива MapLibre SDK следует сохранять при релизе.
+- Wikimedia Commons: запрашиваются только изображения со значениями метаданных CC0/PD; для каждого доступна ссылка на страницу исходного файла и лицензия. Верификация метаданных — не абсолютная гарантия прав; проводите аудит при выпуске.
+- API ключ в Android APK технически доступен для извлечения. Установите лимиты и защиту ключей у провайдера.
