@@ -30,5 +30,6 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.56.2")
     kapt("com.google.dagger:hilt-compiler:2.56.2")
     implementation("org.maplibre.gl:android-sdk:11.11.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 }
